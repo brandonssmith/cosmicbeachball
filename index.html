@@ -79,11 +79,13 @@
                 this.dx = (Math.random() - 0.5) * 4;
                 this.dy = (Math.random() - 0.5) * 4;
                 this.scoreValue = Math.floor(this.radius / 10) * 10;
+                this.rotation = 0; // Add rotation property
             }
 
             update() {
                 this.x += this.dx;
                 this.y += this.dy;
+                this.rotation += 0.02; // Gentle rotation effect
 
                 if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
                     this.dx = -this.dx;
@@ -94,11 +96,44 @@
             }
 
             draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                // Draw three colored sections
+                const colors = ['#FF0000', '#FFFF00', '#0000FF']; // Red, Yellow, Blue
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0); // Vertex at top
+                    ctx.arc(0, 0, this.radius, 
+                        (i * 2 * Math.PI / 3) - Math.PI / 2, 
+                        ((i + 1) * 2 * Math.PI / 3) - Math.PI / 2);
+                    ctx.fillStyle = colors[i];
+                    ctx.fill();
+                    ctx.closePath();
+                }
+
+                // Draw white delineation lines
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = ['#FF0000', '#FFFF00', '#0000FF'][Math.floor(Math.random() * 3)];
-                ctx.fill();
-                ctx.closePath();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#FFFFFF';
+                for (let i = 0; i < 3; i++) {
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(
+                        this.radius * Math.cos(i * 2 * Math.PI / 3 - Math.PI / 2),
+                        this.radius * Math.sin(i * 2 * Math.PI / 3 - Math.PI / 2)
+                    );
+                }
+                ctx.stroke();
+
+                // Draw white border
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.stroke();
+
+                ctx.restore();
             }
         }
 
@@ -138,7 +173,7 @@
             ctx.font = '30px Arial';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
-            ctx.fillText('Cosmic Brandon Beach Ball Blast', canvas.width / 2, 40);
+            ctx.fillText('Cosmic Beach Ball Blast', canvas.width / 2, 40);
         }
 
         // Draw score
@@ -162,9 +197,9 @@
         function gameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Update ship - reduced acceleration/deceleration by half
-            if (keys.w) ship.speed = Math.min(ship.speed + 0.05, ship.maxSpeed); // Was 0.1
-            if (keys.s) ship.speed = Math.max(ship.speed - 0.05, -ship.maxSpeed); // Was 0.1
+            // Update ship
+            if (keys.w) ship.speed = Math.min(ship.speed + 0.05, ship.maxSpeed);
+            if (keys.s) ship.speed = Math.max(ship.speed - 0.05, -ship.maxSpeed);
             if (keys.a) ship.angle -= 0.05;
             if (keys.d) ship.angle += 0.05;
 

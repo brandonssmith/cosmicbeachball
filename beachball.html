@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Beach Ball Blaster</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background: #87CEEB;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Player ship
+        const ship = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            angle: 0,
+            speed: 0,
+            maxSpeed: 5,
+            radius: 20
+        };
+
+        // Game objects and score
+        let bullets = [];
+        let beachBalls = [];
+        let score = 0;
+        const BALL_COUNT = 5;
+
+        // Controls
+        const keys = {
+            w: false,
+            s: false,
+            a: false,
+            d: false,
+            space: false
+        };
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'w': keys.w = true; break;
+                case 's': keys.s = true; break;
+                case 'a': keys.a = true; break;
+                case 'd': keys.d = true; break;
+                case ' ': keys.space = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'w': keys.w = false; break;
+                case 's': keys.s = false; break;
+                case 'a': keys.a = false; break;
+                case 'd': keys.d = false; break;
+                case ' ': keys.space = false; break;
+            }
+        });
+
+        // Beach ball class
+        class BeachBall {
+            constructor() {
+                this.radius = 30 + Math.random() * 20;
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
+                this.dx = (Math.random() - 0.5) * 4;
+                this.dy = (Math.random() - 0.5) * 4;
+                this.scoreValue = Math.floor(this.radius / 10) * 10;
+            }
+
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+
+                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                    this.dx = -this.dx;
+                }
+                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                    this.dy = -this.dy;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = ['#FF0000', '#FFFF00', '#0000FF'][Math.floor(Math.random() * 3)];
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        // Bullet class
+        class Bullet {
+            constructor() {
+                this.x = ship.x;
+                this.y = ship.y;
+                this.dx = Math.cos(ship.angle) * 7;
+                this.dy = Math.sin(ship.angle) * 7;
+                this.radius = 5;
+                this.life = 60;
+            }
+
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
+                this.life--;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000';
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        // Initialize beach balls
+        for (let i = 0; i < BALL_COUNT; i++) {
+            beachBalls.push(new BeachBall());
+        }
+
+        // Draw title
+        function drawTitle() {
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            ctx.fillText('Cosmic Brandon Beach Ball Blast', canvas.width / 2, 40);
+        }
+
+        // Draw score
+        function drawScore() {
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+        }
+
+        // Draw instructions
+        function drawInstructions() {
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            ctx.fillText('W - forward, S - Slow/Reverse, A - turn left, D - turn right, Space - shoot', 
+                canvas.width / 2, canvas.height - 20);
+        }
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update ship - reduced acceleration/deceleration by half
+            if (keys.w) ship.speed = Math.min(ship.speed + 0.05, ship.maxSpeed); // Was 0.1
+            if (keys.s) ship.speed = Math.max(ship.speed - 0.05, -ship.maxSpeed); // Was 0.1
+            if (keys.a) ship.angle -= 0.05;
+            if (keys.d) ship.angle += 0.05;
+
+            ship.x += Math.cos(ship.angle) * ship.speed;
+            ship.y += Math.sin(ship.angle) * ship.speed;
+
+            if (ship.x > canvas.width) ship.x = 0;
+            if (ship.x < 0) ship.x = canvas.width;
+            if (ship.y > canvas.height) ship.y = 0;
+            if (ship.y < 0) ship.y = canvas.height;
+
+            // Draw ship
+            ctx.save();
+            ctx.translate(ship.x, ship.y);
+            ctx.rotate(ship.angle);
+            ctx.beginPath();
+            ctx.moveTo(ship.radius, 0);
+            ctx.lineTo(-ship.radius / 2, ship.radius / 2);
+            ctx.lineTo(-ship.radius / 2, -ship.radius / 2);
+            ctx.closePath();
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.restore();
+
+            // Handle bullets
+            if (keys.space && bullets.length < 10) {
+                bullets.push(new Bullet());
+                keys.space = false;
+            }
+
+            bullets.forEach((bullet, index) => {
+                bullet.update();
+                bullet.draw();
+
+                if (bullet.life <= 0) {
+                    bullets.splice(index, 1);
+                    return;
+                }
+
+                beachBalls.forEach((ball, ballIndex) => {
+                    const dx = bullet.x - ball.x;
+                    const dy = bullet.y - ball.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < bullet.radius + ball.radius) {
+                        bullets.splice(index, 1);
+                        score += ball.scoreValue;
+                        beachBalls.splice(ballIndex, 1);
+                        
+                        if (ball.radius > 40) {
+                            const newBall1 = new BeachBall();
+                            const newBall2 = new BeachBall();
+                            newBall1.x = ball.x;
+                            newBall1.y = ball.y;
+                            newBall2.x = ball.x;
+                            newBall2.y = ball.y;
+                            newBall1.radius = ball.radius / 2;
+                            newBall2.radius = ball.radius / 2;
+                            newBall1.scoreValue = Math.floor(ball.scoreValue / 2);
+                            newBall2.scoreValue = Math.floor(ball.scoreValue / 2);
+                            beachBalls.push(newBall1, newBall2);
+                        }
+                    }
+                });
+            });
+
+            // Update and draw beach balls
+            beachBalls.forEach(ball => {
+                ball.update();
+                ball.draw();
+            });
+
+            // Respawn beach balls
+            if (beachBalls.length === 0) {
+                for (let i = 0; i < BALL_COUNT; i++) {
+                    beachBalls.push(new BeachBall());
+                }
+            }
+
+            // Draw UI elements
+            drawTitle();
+            drawScore();
+            drawInstructions();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
